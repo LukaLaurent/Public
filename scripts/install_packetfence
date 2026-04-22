@@ -1,4 +1,3 @@
-!#/bin/bash
 author="WeaZzik"
 version="1.0"
 host_IP=$(hostname -I | awk '{print $1}')
