@@ -1,0 +1,76 @@
+#!/bin/bash
+
+set -e
+
+echo "=== Mise à jour du système ==="
+apt update
+apt install -y freeradius freeradius-utils
+
+echo "=== Sauvegarde des fichiers ==="
+cp /etc/freeradius/3.0/clients.conf /etc/freeradius/3.0/clients.conf.bak
+cp /etc/freeradius/3.0/mods-config/files/authorize /etc/freeradius/3.0/mods-config/files/authorize.bak
+
+echo "=== Configuration des clients RADIUS ==="
+
+cat >> /etc/freeradius/3.0/clients.conf << 'EOF'
+
+client R1 {
+    ipaddr = 192.168.72.1
+    secret = cisco
+}
+
+client R2 {
+    ipaddr = 192.168.73.1
+    secret = cisco
+}
+
+client R3 {
+    ipaddr = 10.72.72.1
+    secret = cisco
+}
+
+client BB1 {
+    ipaddr = 10.72.72.7
+    secret = cisco
+}
+
+client S1 {
+    ipaddr = 192.168.72.100
+    secret = cisco
+}
+
+client S2 {
+    ipaddr = 192.168.73.100
+    secret = cisco
+}
+
+EOF
+
+echo "=== Création des utilisateurs AAA ==="
+
+cat >> /etc/freeradius/3.0/mods-config/files/authorize << 'EOF'
+
+cisco Cleartext-Password := "cisco"
+    Cisco-AVPair = "shell:priv-lvl=15"
+
+cisco2 Cleartext-Password := "cisco2"
+    Cisco-AVPair = "shell:priv-lvl=1"
+
+EOF
+
+echo "=== Redémarrage du service ==="
+systemctl enable freeradius
+systemctl restart freeradius
+
+echo "=== Vérification du statut ==="
+systemctl --no-pager status freeradius
+
+echo ""
+echo "Installation terminée."
+echo ""
+echo "Utilisateur cisco : cisco / cisco"
+echo "Utilisateur cisco2 : cisco2 / cisco2"
+echo "Secret partagé : cisco"
+echo ""
+echo "Pour tester :"
+echo "radtest cisco cisco localhost 0 testing123"
